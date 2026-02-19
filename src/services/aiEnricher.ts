@@ -1,10 +1,12 @@
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 import Anthropic from "@anthropic-ai/sdk";
 
 import { env } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import type { IssueData } from "./linearClient.js";
 
-const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+// @ts-ignore — CJS/ESM interop: local and Vercel resolve differently
+const client = new (Anthropic.default ?? Anthropic)({ apiKey: env.ANTHROPIC_API_KEY });
 
 export interface EnrichmentResult {
   title: string;
@@ -48,7 +50,7 @@ export async function enrichTicket(issue: IssueData): Promise<EnrichmentResult> 
     messages: [{ role: "user", content: buildUserPrompt(issue) }],
   });
 
-  const textBlock = message.content.find((block) => block.type === "text");
+  const textBlock = message.content.find((block: { type: string }) => block.type === "text");
   if (!textBlock || textBlock.type !== "text") {
     throw new Error("No text response from Claude");
   }
