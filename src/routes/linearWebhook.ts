@@ -2,6 +2,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { Router } from "express";
 
 import { env } from "../config/env.js";
+import { logger } from "../config/logger.js";
+import { runEnrichment } from "../services/enrichmentPipeline.js";
 
 export const linearWebhookRouter = Router();
 
@@ -24,7 +26,7 @@ function isValidSignature(rawBody: string, signatureHeader: string | undefined):
   return timingSafeEqual(expected, received);
 }
 
-linearWebhookRouter.post("/webhooks/linear", (req, res) => {
+linearWebhookRouter.post("/webhooks/linear", async (req, res) => {
   const signature = req.header("linear-signature");
   const rawBody = JSON.stringify(req.body ?? {});
 
@@ -33,13 +35,25 @@ linearWebhookRouter.post("/webhooks/linear", (req, res) => {
     return;
   }
 
-  // Placeholder: branch on event type and call enrichment pipeline.
-  const eventType = req.body?.type ?? "unknown";
-  const issueId = req.body?.data?.id ?? null;
+  const { type, action, data } = req.body ?? {};
 
-  res.status(202).json({
-    accepted: true,
-    eventType,
-    issueId
-  });
+  if (type === "Comment" && action === "create") {
+    const body: string = data?.body ?? "";
+    const issueId: string | undefined = data?.issueId;
+
+    if (body.trim().startsWith("/enrich") && issueId) {
+      logger.info({ issueId }, "Enrichment triggered via /enrich comment");
+      try {
+        await runEnrichment(issueId);
+        res.status(200).json({ accepted: true, enriched: true });
+        return;
+      } catch (err) {
+        logger.error({ err, issueId }, "Enrichment from comment failed");
+        res.status(500).json({ error: "Enrichment failed" });
+        return;
+      }
+    }
+  }
+
+  res.status(200).json({ accepted: true });
 });
