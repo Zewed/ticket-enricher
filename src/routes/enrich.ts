@@ -5,7 +5,7 @@ import { runEnrichment } from "../services/enrichmentPipeline.js";
 
 export const enrichRouter = Router();
 
-enrichRouter.post("/enrich/:issueId", async (req, res, next) => {
+enrichRouter.post("/enrich/:issueId", async (req, res) => {
   const { issueId } = req.params;
 
   logger.info({ issueId }, "Enrichment requested");
