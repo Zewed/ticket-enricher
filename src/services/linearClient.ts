@@ -39,17 +39,18 @@ export async function getIssue(issueId: string): Promise<IssueData> {
   };
 }
 
-export async function postComment(issueId: string, body: string): Promise<string> {
-  const payload = await client.createComment({ issueId, body });
+export async function updateIssue(
+  issueId: string,
+  data: { title: string; description: string },
+): Promise<void> {
+  const payload = await client.updateIssue(issueId, {
+    title: data.title,
+    description: data.description,
+  });
 
   if (!payload.success) {
-    throw new Error(`Failed to post comment on issue ${issueId}`);
+    throw new Error(`Failed to update issue ${issueId}`);
   }
 
-  const comment = await payload.comment;
-  const commentId = comment?.id ?? "unknown";
-
-  logger.info({ issueId, commentId }, "Posted comment on Linear issue");
-
-  return commentId;
+  logger.info({ issueId }, "Updated Linear issue title and description");
 }

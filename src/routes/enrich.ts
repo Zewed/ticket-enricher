@@ -1,7 +1,7 @@
 import { Router } from "express";
 
 import { logger } from "../config/logger.js";
-import { getIssue } from "../services/linearClient.js";
+import { runEnrichment } from "../services/enrichmentPipeline.js";
 
 export const enrichRouter = Router();
 
@@ -13,10 +13,7 @@ enrichRouter.post("/enrich/:issueId", async (req, res, next) => {
   res.status(202).json({ status: "accepted", issueId });
 
   try {
-    const issue = await getIssue(issueId);
-    logger.info({ issueId, identifier: issue.identifier }, "Enrichment pipeline started");
-
-    // TODO: call enrichment pipeline (tickets 4 & 5)
+    await runEnrichment(issueId);
   } catch (err) {
     logger.error({ err, issueId }, "Enrichment failed");
   }
