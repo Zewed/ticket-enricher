@@ -2,6 +2,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { Router } from "express";
 
 import { env } from "../config/env.js";
+import { logger } from "../config/logger.js";
+import { runEnrichment } from "../services/enrichmentPipeline.js";
 
 export const linearWebhookRouter = Router();
 
@@ -33,13 +35,19 @@ linearWebhookRouter.post("/webhooks/linear", (req, res) => {
     return;
   }
 
-  // Placeholder: branch on event type and call enrichment pipeline.
-  const eventType = req.body?.type ?? "unknown";
-  const issueId = req.body?.data?.id ?? null;
+  const { type, action, data } = req.body ?? {};
 
-  res.status(202).json({
-    accepted: true,
-    eventType,
-    issueId
-  });
+  res.status(202).json({ accepted: true });
+
+  if (type === "Comment" && action === "create") {
+    const body: string = data?.body ?? "";
+    const issueId: string | undefined = data?.issueId;
+
+    if (body.trim().startsWith("/enrich") && issueId) {
+      logger.info({ issueId }, "Enrichment triggered via /enrich comment");
+      runEnrichment(issueId).catch((err) => {
+        logger.error({ err, issueId }, "Enrichment from comment failed");
+      });
+    }
+  }
 });
