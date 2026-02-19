@@ -54,3 +54,8 @@ export async function updateIssue(
 
   logger.info({ issueId }, "Updated Linear issue title and description");
 }
+
+export async function postComment(issueId: string, body: string): Promise<void> {
+  await client.createComment({ issueId, body });
+  logger.debug({ issueId }, "Posted comment on Linear issue");
+}
