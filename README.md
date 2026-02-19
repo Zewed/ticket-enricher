@@ -1,8 +1,8 @@
 # ticket-enricher
 
-Service Node/TypeScript pour enrichir des tickets Linear avec du contexte IA.
+Node/TypeScript service to enrich Linear tickets with AI-generated context.
 
-## Démarrage
+## Getting Started
 
 ```bash
 npm install
@@ -12,18 +12,18 @@ npm run dev
 
 ## Scripts
 
-- `npm run dev`: serveur local avec reload
-- `npm run build`: compile TypeScript vers `dist/`
-- `npm run start`: lance la version compilée
-- `npm run typecheck`: vérification TypeScript stricte
+- `npm run dev`: run local server with auto-reload
+- `npm run build`: compile TypeScript to `dist/`
+- `npm run start`: run the compiled build
+- `npm run typecheck`: run strict TypeScript checks
 
 ## Endpoints
 
-- `GET /health`: état du service
-- `POST /webhooks/linear`: endpoint webhook Linear (signature optionnelle)
+- `GET /health`: service health status
+- `POST /webhooks/linear`: Linear webhook endpoint (optional signature verification)
 
-## Prochaine étape
+## Next Step
 
-- Brancher les appels API Linear
-- Ajouter pipeline RAG (codebase + tickets historiques)
-- Générer un draft enrichi puis le poster en commentaire
+- Connect Linear API calls
+- Add RAG pipeline (codebase + historical tickets)
+- Generate an enriched draft and post it as a comment
