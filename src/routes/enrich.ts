@@ -10,11 +10,11 @@ enrichRouter.post("/enrich/:issueId", async (req, res, next) => {
 
   logger.info({ issueId }, "Enrichment requested");
 
-  res.status(202).json({ status: "accepted", issueId });
-
   try {
     await runEnrichment(issueId);
+    res.status(200).json({ status: "completed", issueId });
   } catch (err) {
     logger.error({ err, issueId }, "Enrichment failed");
+    res.status(500).json({ status: "error", issueId });
   }
 });
