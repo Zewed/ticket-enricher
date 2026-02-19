@@ -16,6 +16,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@linear/sdk": "^75.0.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "pino": "^10.3.1",
