@@ -1,7 +1,6 @@
 import { logger } from "../config/logger.js";
-import { searchRelevantCode, type CodeSnippet } from "./githubClient.js";
+import { getOrg, searchRelevantCode, type CodeSnippet } from "./githubClient.js";
 import {
-  getRepoFromAttachments,
   searchSimilarIssues,
   type IssueData,
   type SimilarIssue,
@@ -10,7 +9,7 @@ import {
 export interface EnrichmentContext {
   similarIssues: SimilarIssue[];
   codeSnippets: CodeSnippet[];
-  repo: string | null;
+  org: string | null;
 }
 
 const STOP_WORDS = new Set([
@@ -49,11 +48,8 @@ export async function gatherContext(issue: IssueData): Promise<EnrichmentContext
     "Gathering RAG context",
   );
 
-  // Detect repo from Linear attachments (for GitHub code search)
-  const repo = await getRepoFromAttachments(issue.id).catch((err) => {
-    logger.warn({ err }, "Failed to detect repo from attachments");
-    return null;
-  });
+  // Detect GitHub org for code search
+  const org = await getOrg();
 
   // Run searches in parallel — each is fail-safe
   const [similarIssues, codeSnippets] = await Promise.all([
@@ -64,12 +60,10 @@ export async function gatherContext(issue: IssueData): Promise<EnrichmentContext
       logger.warn({ err }, "Similar issue search failed");
       return [] as SimilarIssue[];
     }),
-    repo
-      ? searchRelevantCode(repo, keywords, 3).catch((err) => {
-          logger.warn({ err }, "Code search failed");
-          return [] as CodeSnippet[];
-        })
-      : ([] as CodeSnippet[]),
+    searchRelevantCode(keywords, 3).catch((err) => {
+      logger.warn({ err }, "Code search failed");
+      return [] as CodeSnippet[];
+    }),
   ]);
 
   logger.info(
@@ -77,10 +71,10 @@ export async function gatherContext(issue: IssueData): Promise<EnrichmentContext
       identifier: issue.identifier,
       similarIssuesCount: similarIssues.length,
       codeSnippetsCount: codeSnippets.length,
-      repo: repo ?? "none",
+      org: org ?? "none",
     },
     "RAG context gathered",
   );
 
-  return { similarIssues, codeSnippets, repo };
+  return { similarIssues, codeSnippets, org };
 }

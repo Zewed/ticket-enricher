@@ -76,25 +76,6 @@ export async function searchSimilarIssues(
   return results.slice(0, max);
 }
 
-export async function getRepoFromAttachments(issueId: string): Promise<string | null> {
-  const issue = await client.issue(issueId);
-  const attachments = await issue.attachments();
-
-  for (const attachment of attachments.nodes) {
-    const url = attachment.url;
-    if (!url) continue;
-
-    // Match GitHub URLs like https://github.com/owner/repo/...
-    const match = url.match(/github\.com\/([^/]+\/[^/]+)/);
-    if (match) {
-      logger.debug({ issueId, repo: match[1] }, "Detected GitHub repo from attachment");
-      return match[1];
-    }
-  }
-
-  return null;
-}
-
 export async function updateIssue(
   issueId: string,
   data: { title: string; description: string },

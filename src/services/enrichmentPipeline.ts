@@ -6,8 +6,8 @@ import { getIssue, postComment, updateIssue } from "./linearClient.js";
 function buildSourcesFooter(context: EnrichmentContext): string {
   const lines: string[] = [];
 
-  if (context.repo) {
-    lines.push(`- GitHub: \`${context.repo}\``);
+  if (context.org) {
+    lines.push(`- GitHub: \`${context.org}\``);
   }
 
   if (context.similarIssues.length > 0) {
