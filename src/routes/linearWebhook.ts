@@ -44,7 +44,7 @@ linearWebhookRouter.post("/webhooks/linear", async (req, res) => {
     if (body.trim().startsWith("/enrich") && issueId) {
       logger.info({ issueId }, "Enrichment triggered via /enrich comment");
       try {
-        await runEnrichment(issueId);
+        await runEnrichment(issueId, true);
         res.status(200).json({ accepted: true, enriched: true });
         return;
       } catch (err) {
