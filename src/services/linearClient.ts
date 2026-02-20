@@ -55,9 +55,10 @@ export async function searchSimilarIssues(
 ): Promise<SimilarIssue[]> {
   const max = options?.maxResults ?? 5;
 
-  const [keywordResults] = await Promise.all([
-    client.searchIssues(query, { first: max }),
-  ]);
+  const keywordResults = await client.searchIssues(query, {
+    first: max,
+    ...(options?.teamId ? { teamId: options.teamId } : {}),
+  });
 
   const results: SimilarIssue[] = [];
 

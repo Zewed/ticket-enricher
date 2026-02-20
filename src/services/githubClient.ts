@@ -28,8 +28,13 @@ export async function searchRelevantCode(
   const client = getClient();
   if (!client) return [];
 
-  const query =
-    keywords.slice(0, 3).join(" ") + ` repo:${repo}`;
+  const sanitized = keywords
+    .slice(0, 3)
+    .map((k) => k.replace(/[:"\\]/g, ""))
+    .filter((k) => k.length > 0);
+  if (sanitized.length === 0) return [];
+
+  const query = sanitized.join(" ") + ` repo:${repo}`;
 
   const [owner, repoName] = repo.split("/");
   if (!owner || !repoName) return [];
@@ -67,8 +72,13 @@ export async function searchRelevantCode(
 
     logger.debug({ count: snippets.length, repo, keywords }, "Fetched code snippets from GitHub");
     return snippets;
-  } catch (err) {
-    logger.warn({ err, repo, keywords }, "GitHub code search failed");
+  } catch (err: unknown) {
+    const status = (err as { status?: number }).status;
+    if (status === 403 || status === 429) {
+      logger.warn({ repo }, "GitHub API rate limit hit, skipping code context");
+    } else {
+      logger.warn({ err, repo, keywords }, "GitHub code search failed");
+    }
     return [];
   }
 }
