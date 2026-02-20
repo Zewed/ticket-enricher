@@ -34,7 +34,8 @@ export async function searchRelevantCode(
     .filter((k) => k.length > 0);
   if (sanitized.length === 0) return [];
 
-  const query = sanitized.join(" ");
+  const orgQualifier = env.GITHUB_ORG ? `org:${env.GITHUB_ORG} ` : "";
+  const query = `${orgQualifier}${sanitized.join(" ")}`;
 
   try {
     const searchResult = await client.rest.search.code({
