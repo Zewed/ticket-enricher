@@ -9,6 +9,7 @@ const envSchema = z.object({
   LINEAR_API_KEY: z.string().min(1),
   LINEAR_WEBHOOK_SECRET: z.string().min(1).optional(),
   ANTHROPIC_API_KEY: z.string().min(1),
+  GITHUB_TOKEN: z.string().min(1).optional(),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
     .default("info")

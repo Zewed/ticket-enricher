@@ -14,15 +14,17 @@ export interface IssueData {
   labels: string[];
   assignee: string | undefined;
   project: string | undefined;
+  teamId: string | undefined;
 }
 
 export async function getIssue(issueId: string): Promise<IssueData> {
   const issue = await client.issue(issueId);
-  const [state, assignee, project, labels] = await Promise.all([
+  const [state, assignee, project, labels, team] = await Promise.all([
     issue.state,
     issue.assignee,
     issue.project,
     issue.labels(),
+    issue.team,
   ]);
 
   logger.debug({ issueId, identifier: issue.identifier }, "Fetched issue from Linear");
@@ -36,7 +38,60 @@ export async function getIssue(issueId: string): Promise<IssueData> {
     labels: labels.nodes.map((l) => l.name),
     assignee: assignee?.displayName,
     project: project?.name,
+    teamId: team?.id,
   };
+}
+
+export interface SimilarIssue {
+  identifier: string;
+  title: string;
+  description: string | undefined;
+  state: string | undefined;
+}
+
+export async function searchSimilarIssues(
+  query: string,
+  options?: { teamId?: string; maxResults?: number },
+): Promise<SimilarIssue[]> {
+  const max = options?.maxResults ?? 5;
+
+  const [keywordResults] = await Promise.all([
+    client.searchIssues(query, { first: max }),
+  ]);
+
+  const results: SimilarIssue[] = [];
+
+  for (const node of keywordResults.nodes) {
+    const state = await node.state;
+    results.push({
+      identifier: node.identifier,
+      title: node.title,
+      description: node.description ?? undefined,
+      state: state?.name,
+    });
+  }
+
+  logger.debug({ count: results.length, query }, "Found similar issues");
+  return results.slice(0, max);
+}
+
+export async function getRepoFromAttachments(issueId: string): Promise<string | null> {
+  const issue = await client.issue(issueId);
+  const attachments = await issue.attachments();
+
+  for (const attachment of attachments.nodes) {
+    const url = attachment.url;
+    if (!url) continue;
+
+    // Match GitHub URLs like https://github.com/owner/repo/...
+    const match = url.match(/github\.com\/([^/]+\/[^/]+)/);
+    if (match) {
+      logger.debug({ issueId, repo: match[1] }, "Detected GitHub repo from attachment");
+      return match[1];
+    }
+  }
+
+  return null;
 }
 
 export async function updateIssue(

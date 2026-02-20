@@ -1,5 +1,6 @@
 import { logger } from "../config/logger.js";
 import { enrichTicket } from "./aiEnricher.js";
+import { gatherContext } from "./contextGatherer.js";
 import { getIssue, postComment, updateIssue } from "./linearClient.js";
 
 export async function runEnrichment(issueId: string, withFeedback = false): Promise<void> {
@@ -9,9 +10,12 @@ export async function runEnrichment(issueId: string, withFeedback = false): Prom
 
   try {
     const issue = await getIssue(issueId);
-    logger.info({ identifier: issue.identifier }, "Issue fetched, generating enrichment");
+    logger.info({ identifier: issue.identifier }, "Issue fetched, gathering context");
 
-    const enriched = await enrichTicket(issue);
+    const context = await gatherContext(issue);
+    logger.info({ identifier: issue.identifier }, "Context gathered, generating enrichment");
+
+    const enriched = await enrichTicket(issue, context);
     logger.info({ identifier: issue.identifier }, "Enrichment generated, updating issue");
 
     await updateIssue(issue.id, enriched);
