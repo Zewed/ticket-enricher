@@ -10,6 +10,7 @@ import {
 export interface EnrichmentContext {
   similarIssues: SimilarIssue[];
   codeSnippets: CodeSnippet[];
+  repo: string | null;
 }
 
 const STOP_WORDS = new Set([
@@ -81,5 +82,5 @@ export async function gatherContext(issue: IssueData): Promise<EnrichmentContext
     "RAG context gathered",
   );
 
-  return { similarIssues, codeSnippets };
+  return { similarIssues, codeSnippets, repo };
 }
