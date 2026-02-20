@@ -27,10 +27,19 @@ export async function getOrg(): Promise<string | null> {
   if (cachedOrg !== undefined) return cachedOrg;
 
   try {
+    // Try orgs endpoint first
     const orgs = await client.rest.orgs.listForAuthenticatedUser({ per_page: 1 });
-    cachedOrg = orgs.data[0]?.login ?? null;
+    if (orgs.data[0]?.login) {
+      cachedOrg = orgs.data[0].login;
+      logger.debug({ org: cachedOrg }, "Detected GitHub org from orgs API");
+      return cachedOrg;
+    }
+
+    // Fallback: detect org from repos accessible to the token
+    const repos = await client.rest.repos.listForAuthenticatedUser({ per_page: 1, type: "all" });
+    cachedOrg = repos.data[0]?.owner?.login ?? null;
     if (cachedOrg) {
-      logger.debug({ org: cachedOrg }, "Detected GitHub org");
+      logger.debug({ org: cachedOrg }, "Detected GitHub org from repos API");
     }
     return cachedOrg;
   } catch (err) {
