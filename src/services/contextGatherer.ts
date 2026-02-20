@@ -1,5 +1,5 @@
 import { logger } from "../config/logger.js";
-import { getOrg, searchRelevantCode, type CodeSnippet } from "./githubClient.js";
+import { searchRelevantCode, type CodeSnippet } from "./githubClient.js";
 import {
   searchSimilarIssues,
   type IssueData,
@@ -9,7 +9,6 @@ import {
 export interface EnrichmentContext {
   similarIssues: SimilarIssue[];
   codeSnippets: CodeSnippet[];
-  org: string | null;
 }
 
 const STOP_WORDS = new Set([
@@ -48,9 +47,6 @@ export async function gatherContext(issue: IssueData): Promise<EnrichmentContext
     "Gathering RAG context",
   );
 
-  // Detect GitHub org for code search
-  const org = await getOrg();
-
   // Run searches in parallel — each is fail-safe
   const [similarIssues, codeSnippets] = await Promise.all([
     searchSimilarIssues(searchQuery, {
@@ -66,15 +62,17 @@ export async function gatherContext(issue: IssueData): Promise<EnrichmentContext
     }),
   ]);
 
+  const repos = [...new Set(codeSnippets.map((s) => s.repo))];
+
   logger.info(
     {
       identifier: issue.identifier,
       similarIssuesCount: similarIssues.length,
       codeSnippetsCount: codeSnippets.length,
-      org: org ?? "none",
+      repos,
     },
     "RAG context gathered",
   );
 
-  return { similarIssues, codeSnippets, org };
+  return { similarIssues, codeSnippets };
 }

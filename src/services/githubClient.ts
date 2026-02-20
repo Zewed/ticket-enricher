@@ -4,13 +4,13 @@ import { env } from "../config/env.js";
 import { logger } from "../config/logger.js";
 
 export interface CodeSnippet {
+  repo: string;
   path: string;
   content: string;
   matchReason: string;
 }
 
 let octokit: Octokit | null = null;
-let cachedOrg: string | null | undefined;
 
 function getClient(): Octokit | null {
   if (!env.GITHUB_TOKEN) return null;
@@ -18,35 +18,6 @@ function getClient(): Octokit | null {
     octokit = new Octokit({ auth: env.GITHUB_TOKEN });
   }
   return octokit;
-}
-
-export async function getOrg(): Promise<string | null> {
-  const client = getClient();
-  if (!client) return null;
-
-  if (cachedOrg !== undefined) return cachedOrg;
-
-  try {
-    // Try orgs endpoint first
-    const orgs = await client.rest.orgs.listForAuthenticatedUser({ per_page: 1 });
-    if (orgs.data[0]?.login) {
-      cachedOrg = orgs.data[0].login;
-      logger.debug({ org: cachedOrg }, "Detected GitHub org from orgs API");
-      return cachedOrg;
-    }
-
-    // Fallback: detect org from repos accessible to the token
-    const repos = await client.rest.repos.listForAuthenticatedUser({ per_page: 1, type: "all" });
-    cachedOrg = repos.data[0]?.owner?.login ?? null;
-    if (cachedOrg) {
-      logger.debug({ org: cachedOrg }, "Detected GitHub org from repos API");
-    }
-    return cachedOrg;
-  } catch (err) {
-    logger.warn({ err }, "Failed to detect GitHub org");
-    cachedOrg = null;
-    return null;
-  }
 }
 
 export async function searchRelevantCode(
@@ -57,16 +28,13 @@ export async function searchRelevantCode(
   const client = getClient();
   if (!client) return [];
 
-  const org = await getOrg();
-  if (!org) return [];
-
   const sanitized = keywords
     .slice(0, 3)
     .map((k) => k.replace(/[:"\\]/g, ""))
     .filter((k) => k.length > 0);
   if (sanitized.length === 0) return [];
 
-  const query = sanitized.join(" ") + ` org:${org}`;
+  const query = sanitized.join(" ");
 
   try {
     const searchResult = await client.rest.search.code({
@@ -87,7 +55,8 @@ export async function searchRelevantCode(
         if ("content" in fileResponse.data && fileResponse.data.content) {
           const decoded = Buffer.from(fileResponse.data.content, "base64").toString("utf-8");
           return {
-            path: `${repoName}/${item.path}`,
+            repo: repoFullName,
+            path: item.path,
             content: decoded.slice(0, maxContentLength),
             matchReason: `Matched: ${sanitized.join(", ")}`,
           };
@@ -101,14 +70,14 @@ export async function searchRelevantCode(
     const results = await Promise.all(filePromises);
     const snippets = results.filter((r): r is CodeSnippet => r !== null);
 
-    logger.debug({ count: snippets.length, org, keywords }, "Fetched code snippets from GitHub");
+    logger.debug({ count: snippets.length, keywords }, "Fetched code snippets from GitHub");
     return snippets;
   } catch (err: unknown) {
     const status = (err as { status?: number }).status;
     if (status === 403 || status === 429) {
-      logger.warn({ org }, "GitHub API rate limit hit, skipping code context");
+      logger.warn("GitHub API rate limit hit, skipping code context");
     } else {
-      logger.warn({ err, org, keywords }, "GitHub code search failed");
+      logger.warn({ err, keywords }, "GitHub code search failed");
     }
     return [];
   }

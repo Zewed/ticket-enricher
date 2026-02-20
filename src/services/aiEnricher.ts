@@ -57,7 +57,7 @@ function buildUserPrompt(issue: IssueData, context?: EnrichmentContext): string 
     parts.push("\n---\n**Relevant Code Files**:");
     for (const snippet of context.codeSnippets) {
       parts.push(
-        `\n**File: \`${snippet.path}\`** (${snippet.matchReason})\n\`\`\`\n${snippet.content}\n\`\`\``,
+        `\n**File: \`${snippet.repo}/${snippet.path}\`** (${snippet.matchReason})\n\`\`\`\n${snippet.content}\n\`\`\``,
       );
     }
   }
